@@ -353,7 +353,6 @@ void Emergency_Act()    //장애물 발견
 
 void main(void)
 {
-    Initial_Setting();
 
     while (1)
     {

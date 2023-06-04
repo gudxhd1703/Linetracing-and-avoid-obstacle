@@ -18,8 +18,12 @@
 #define L 2
 #define R 3
 #define S 4
-#define linetracing 1
-#define emergency 2
+#define Linetracing 1
+#define Emergency 2
+#define OutOfLine 1
+#define Turn 2
+#define GetInLine 3 
+#define Found_Line
 
 //velocity
 #define Velocity_Forward 28 //전진속도
@@ -322,12 +326,14 @@ int Decoding_Sensor(unsigned char buf[17])
 		int compare = 0;
 		for (i=4;i<9;i++){
 			compare = i;
-		if(buf[i]<0x46) (control = emergency; break;)
+		if(buf[i]<0x46) (control = Emergency; break;)
 	}
     return compare;
 }
 void Emergency_Act()    //장애물 발견
 {
+    int find_line = OutOfLine;
+
 	Motor_dir(S);
 
     RIGHT = 0;
@@ -338,16 +344,29 @@ void Emergency_Act()    //장애물 발견
     delay_ms(1000);
     Motor_dir(R);
 
-    while(1){
-	    unsigned char IR = PINC;
-
+    while(find_line<Found_Line){
+	    unsigned char IR = PINC;        
         RIGHT = Velocity_Detect;
         LEFT = 0;
         control = linetracing;
 
-        if (IR != 11111111) break;    
-     
-    }
+        if (IR != 11111111) break;    // 첫 번째 회전을 할 때 기존 라인을 벗어났다는 기준이다.
+
+        // switch(find_line)   // 1.라인벗어나기 2. 라인찾기
+        // {
+        // case OutOfLine:
+        //     if (IR = 11111111)
+        //         find_line = OutOfLine;
+        //     /*fall through*/
+        // case Turn:
+
+        //     RIGHT = Velocity_Detect;
+        //     LEFT = 0; 
+        // case GetInLine:    
+        //     if (IR != 11111111)
+        //     find_line = Found_Line;
+        //     }
+        }
 }
 
 interrupt[TIM1_OVF] void timer1_ovf_isr(void)
@@ -356,6 +375,7 @@ interrupt[TIM1_OVF] void timer1_ovf_isr(void)
     TCNT1L = 0xE6;
 
     Sensor();   // Interrupt에서 불러와서 괜찮을까 함수가 너무 큰게 아닐까?
+                //0.1초안에 프로그램을 다 수행 못 할 수 도
 
 }
 
@@ -366,7 +386,7 @@ void main(void)
     TCCR1A = 0;
     TCCR1B = 0x05;
                                 
-    TCNT1H =  0xF9;            // 0.1s 마다 반복
+    TCNT1H =  0xF9;            // 0.1s 마다 반복 
     TCNT1L = 0xE6;             //0xffff(65535)+1-1562 = 63,974
 
     T1FR1 = 0;
@@ -379,7 +399,7 @@ void main(void)
 
 		switch(control){
 	        case linetracing: linetracer();break;
-		    case emergency: Emergency_Act(); break;
+		    case Emergency: Emergency_Act(); break;
 		}
     }
 }

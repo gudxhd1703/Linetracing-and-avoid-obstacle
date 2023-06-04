@@ -184,7 +184,6 @@ void linetracer(void)
     unsigned char IR = 0;
     Initial_Motor_Setting();
 
-    Sensor();
 
         IR = PINC;
 
@@ -351,15 +350,35 @@ void Emergency_Act()    //장애물 발견
     }
 }
 
+interrupt[TIM1_OVF] void timer1_ovf_isr(void)
+{
+    TCNT1H = 0xF9;
+    TCNT1L = 0xE6;
+
+    Sensor();   // Interrupt에서 불러와서 괜찮을까 함수가 너무 큰게 아닐까?
+
+}
+
 void main(void)
 {
+    TIMSK1 = 0x01;
+
+    TCCR1A = 0;
+    TCCR1B = 0x05;
+                                
+    TCNT1H =  0xF9;            // 0.1s 마다 반복
+    TCNT1L = 0xE6;             //0xffff(65535)+1-1562 = 63,974
+
+    T1FR1 = 0;
+    
+    #asm("sei");
 
     while (1)
     {
 		control=Decoding_Sensor();
 
 		switch(control){
-	        case linetracing: Linetracer();break;
+	        case linetracing: linetracer();break;
 		    case emergency: Emergency_Act(); break;
 		}
     }

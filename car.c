@@ -323,7 +323,7 @@ int Decoding_Sensor(unsigned char buf[17])
 		int compare = 0;
 		for (i=4;i<9;i++){
 			compare = i;
-		if(buf[i]<0x46) (control = emergency; break;)
+		if(buf[i]<0x46) {control = emergency; break;}
 	}
     return compare;
 }

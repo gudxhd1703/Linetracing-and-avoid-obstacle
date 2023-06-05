@@ -326,7 +326,7 @@ int Decoding_Sensor(unsigned char buf[17])
 		int compare = 0;
 		for (i=4;i<9;i++){
 			compare = i;
-		if(buf[i]<0x46) (control = Emergency; break;)
+		if(buf[i]<0x46) {control = Emergency; break;}
 	}
     return compare;
 }
@@ -348,7 +348,7 @@ void Emergency_Act()    //장애물 발견
 	    unsigned char IR = PINC;        
         RIGHT = Velocity_Detect;
         LEFT = 0;
-        control = linetracing;
+        control = Linetracing;
 
         if (IR != 11111111) break;    // 첫 번째 회전을 할 때 기존 라인을 벗어났다는 기준이다.
 
@@ -398,7 +398,7 @@ void main(void)
 		control=Decoding_Sensor();
 
 		switch(control){
-	        case linetracing: linetracer();break;
+	        case Linetracing: linetracer();break;
 		    case Emergency: Emergency_Act(); break;
 		}
     }

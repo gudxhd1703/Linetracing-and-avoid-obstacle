@@ -19,7 +19,7 @@
 #define R 3
 #define S 4
 #define linetracing 1
-#define emergency 2
+#define Emergency 2
 
 // velocity
 #define Velocity_Forward 28 // 전진속도
@@ -35,11 +35,14 @@ void Init_USART(void);
 
 void Motor_dir(int c);
 void Linetracer(void);
+void Emergency_Act(void);
 
 void Serial_Send0(unsigned char);
 void SerialData0(char *str);
 unsigned char Serial_Rece1(void);
 void HtoA(int s);
+void Ult_Sonic(void);
+void Decoding_Sensor(void);
 
 unsigned char buf[17]; // 전체 초음파 측정 데이터를 Tx_buf1[5] 에 배열로 저장
 unsigned char Tx_buf1[5] = {0x76, 0x00, 0xF0, 0x00, 0xF0};
@@ -294,8 +297,8 @@ unsigned char Serial_Rece1(void)
 
 interrupt[TIM1_OVF] void timer1_ovf_isr(void)
 {
-    TCNT1H = 0x3D;
-    TCNT1L = 0x09;
+    TCNT1H = 0xE1;
+    TCNT1L = 0x7C;
 
     switch (check_flag)
     {
@@ -354,25 +357,8 @@ void Set_Interrupt(void)
     #asm("sei");
 }
 
-void main(void)
-{
-
-    int i;
-
-    Initial_Motor_Setting();
-    Init_USART();
-
-    Set_Interrupt();
-
-    // 전후방 기본 초음파 측정 요청
-    for (i = 0; i < 5; i++)
-    {
-        Serial_Send1(Tx_buf1[i]);
-    }
-
-    while (1)
-    {
-        if (check_flag == 1)
+void Ult_Sonic(void){
+if (check_flag == 1)
         {
             for (i = 0; i < 17; i++)
             {
@@ -387,8 +373,69 @@ void main(void)
             Serial_Send0(0x0d);
             Serial_Send0(0x0a);
         }
+}
+
+void Emergency_Act(void){
+
+    Motor_dir(S);
+
+    RIGHT = 0;
+    LEFT = 0; // 전진
+	PORTH = PORTH|0x40;
+	PORTL = PORTL|0x10;
+
+    delay_ms(1000);
+
+    PORTH = 0x00; // 후방 LED OFF
+    PORTL = 0x00 ; // 부저 OFF
+
+    control = linetracing;
+
+
+}
+
+void Decoding_Sensor(){
+
+		for (i=4;i<9;i++){
+        compare = i;
+        if (buf[i] < 0x46)
+        {
+            control = Emergency;
+            break;
+        }
+    }
+}
+
+void main(void)
+{
+
+    int i;
+
+    Initial_Motor_Setting();
+    Init_USART();
+
+    Set_Interrupt();
+
+    DDRH = 0x40 ; // 후방 LED
+    PORTH = 0x00; // 후방 LED OFF
+    DDRL = 0x10; // 부저
+    PORTL = 0x00 ; // 부저 OFF
+    
+
+    // 전후방 기본 초음파 측정 요청
+    for (i = 0; i < 5; i++)
+    {
+        Serial_Send1(Tx_buf1[i]);
+    }
+
+    while (1)
+    {
+        Ult_Sonic();
+        Decoding_Senser();
+
         switch (control)
         {
+        case Emergency: Emergency_Act();break;
         case linetracing:
             Linetracer();
             break;

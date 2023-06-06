@@ -35,10 +35,14 @@ void Initial_Sensor_Setting(void);
 
 void Motor_Control(unsigned int IR);
 void Motor_dir(int c);
-void linetracer(void);
+void Linetracer(void);
 
 void Initial_Sensor_Setting(void);
 void Serial_Send0(unsigned char);
+void SerialData0(char *str);
+unsigned char Serial_Rece1(void);
+void HtoA(int s);
+
 
 unsigned char buf[17]; // 전체 초음파 측정 데이터를 Tx_buf1[5] 에 배열로 저장
 unsigned char Tx_buf1[5] = {0x76, 0x00, 0xF0, 0x00, 0xF0};
@@ -63,7 +67,7 @@ void DAC_CH_Write(unsigned int ch1, unsigned int da)
 void DAC_setting(unsigned int data)
 {
     unsigned char S_DIN = clear; // PL7 초기화
-    int i = 0;
+    int i = 0;unsigned char Serial_Rece1(void)
 
     PORTL = PORTL | 0x40; // S_CLK = 0
     delay_us(1);
@@ -175,20 +179,17 @@ void Motor_dir(int c)
     }
 }
 
-void linetracer(void)
+void Linetracer(void)
 {
 
     int i, data = 0;
     unsigned char IR = 0;
-    Initial_Motor_Setting();
-
-    Sensor();
 
     IR = PINC;
 
     // delay_ms(5);
 
-    for (int i = 0; i < 19; i++)
+    for (i = 0; i < 19; i++)
     {
         if (IR == Infrared_Sensor[i])
         {
@@ -268,6 +269,31 @@ void SerialData0(char *str)
     while (*str)
         Serial_Send0(*str++);
 }
+// 시리얼 포트 1에 1 Byte 씩 전송하는 함수이다.
+void Serial_Send1(unsigned char t)
+{
+    // 전송준비가 될 때 까지 대기
+    while (1)
+    {
+        if ((UCSR1A & 0x20) != 0)
+            break;
+    }
+    UDR1 = t;
+    UCSR1A = UCSR1A | 0x20;
+}
+// 시리얼 포트 1에서 데이터를 수신하는 함수이다.
+unsigned char Serial_Rece1(void)
+{
+    unsigned char data;
+    while (1)
+    {
+        if ((UCSR1A & 0x80) != 0)
+            break;
+    }
+    data = UDR1;
+    UCSR1A |= 0x80;
+    return data;
+}
 
 interrupt[TIM1_OVF] void timer1_ovf_isr(void)
 {
@@ -336,6 +362,9 @@ void Set_Interrupt(void){
 
 void main(void)
 {
+
+    int i;
+
     Initial_Motor_Setting();
     Init_USART();
 

@@ -53,7 +53,7 @@ unsigned int Infrared_Sensor[19] = {
 };
 unsigned int Compare_Value[8] = {72, 75, 81, 77, 66, 65, 78, 75}; // n번 센서, (black+(white-black)/2)/4
 
-int control;
+int control=linetracing;
 
 // DA 변환기 출력을 내기위해 해당 데이터를 쓰는 함수
 void DAC_CH_Write(unsigned int ch1, unsigned int da)
@@ -296,8 +296,8 @@ interrupt[TIM1_OVF] void timer1_ovf_isr(void)
 {
     int i;
 
-    TCNT1H = 0xF9;
-    TCNT1L = 0xE6;
+    TCNT1H = 0x3D;
+    TCNT1L = 0x09;
 
     for (i = 0; i < 17; i++)
     {
@@ -351,8 +351,8 @@ void Set_Interrupt(void){
     TCCR1A = 0;
     TCCR1B = 0x05;
                                 
-    TCNT1H =  0xF9;            // 0.1s 마다 반복 
-    TCNT1L = 0xE6;             //0xffff(65535)+1-1562 = 63,974
+    TCNT1H =  0x3D;            // s 마다 반복 
+    TCNT1L = 0x09;             //0xffff(65535)+1-1562 = 63,974
 
     TIFR1 = 0;
 }

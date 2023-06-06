@@ -31,9 +31,8 @@ void DAC_CH_Write(unsigned int, unsigned int);
 void DAC_setting(unsigned int);
 
 void Initial_Motor_Setting(void);
-void Initial_Sensor_Setting(void);
+void Init_USART(void);
 
-void Motor_Control(unsigned int IR);
 void Motor_dir(int c);
 void Linetracer(void);
 
@@ -67,7 +66,7 @@ void DAC_CH_Write(unsigned int ch1, unsigned int da)
 void DAC_setting(unsigned int data)
 {
     unsigned char S_DIN = clear; // PL7 초기화
-    int i = 0;unsigned char Serial_Rece1(void)
+    int i = 0;
 
     PORTL = PORTL | 0x40; // S_CLK = 0
     delay_us(1);
@@ -100,7 +99,6 @@ void Initial_Motor_Setting(void)
 {
 
     int i = 0;
-    unsigned char IR = 0;
 
     DDRA = DDRA | 0x1f; // 적외선 발광다이오드 구동 및  모터드라이버
     DDRC = 0x00;        // Digtial Input

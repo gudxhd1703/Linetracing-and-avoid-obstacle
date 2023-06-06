@@ -411,7 +411,7 @@ void Decoding_Sensor(){
     unsigned char data[17];
 
 		for (i=4;i<9;i++){
-        if (buf[i] < 0x16|0x10<buf[i]|buf[i]!=0)
+        if (buf[i] < 0x16|0x10<buf[i]|buf[i]!="^@^M")
         {
             Serial_Send0(buf[i]);
             Serial_Send0(0x0d);

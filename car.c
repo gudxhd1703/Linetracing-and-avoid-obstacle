@@ -410,7 +410,7 @@ void Decoding_Sensor(){
     int i;
 
 		for (i=4;i<9;i++){
-        if (buf[i] < 0x26)
+        if (0x09<buf[i] < 0x26)
         {
             Serial_Send0(buf[i]);
             // control = Emergency;

@@ -415,7 +415,7 @@ void Decoding_Sensor(){
         }
         }
 		for (i=4;i<9;i++){
-        if (0x10<data[i] < 0x16)
+        if (data[i] < 0x16|0x10<data[i])
         {
             Serial_Send0(data[i]);
             Serial_Send0(0x0d);

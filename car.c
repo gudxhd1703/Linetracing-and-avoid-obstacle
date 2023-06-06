@@ -619,8 +619,8 @@ unsigned char Serial_Rece1(void)
 
 interrupt[TIM1_OVF] void timer1_ovf_isr(void)
 {
-    TCNT1H = 0x3D;
-    TCNT1L = 0x09;
+    TCNT1H = 0xE1;
+    TCNT1L = 0x7C;
 
     switch (check_flag)
     {
@@ -672,8 +672,8 @@ void Set_Interrupt(void)
     TCCR1A = 0;
     TCCR1B = 0x05;
 
-    TCNT1H = 0x3D; // s 마다 반복
-    TCNT1L = 0x09; // 0xffff(65535)+1-1562 = 63,974
+    TCNT1H = 0xE1; // 0.5s 마다 반복
+    TCNT1L = 0x7C; // 0xffff(65535)+1- = 63,974
 
     TIFR1 = 0; 
     #asm("sei");

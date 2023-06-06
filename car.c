@@ -412,7 +412,8 @@ void Decoding_Sensor(){
 		for (i=4;i<9;i++){
         if (buf[i] < 0x26)
         {
-            control = Emergency;
+            Serial_Send0(buf[i]);
+            // control = Emergency;
             break;
         }
     }
@@ -440,7 +441,7 @@ void main(void)
     while (1)
     {
         Ult_Sonic();
-        Decoding_Senser();
+        Decoding_Sensor();
 
         switch (control)
         {

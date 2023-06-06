@@ -36,7 +36,6 @@ void Init_USART(void);
 void Motor_dir(int c);
 void Linetracer(void);
 
-void Initial_Sensor_Setting(void);
 void Serial_Send0(unsigned char);
 void SerialData0(char *str);
 unsigned char Serial_Rece1(void);

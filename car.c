@@ -45,7 +45,7 @@ void HtoA(int s);
 void Ult_Sonic(void);
 void Decoding_Sensor(void);
 
-unsigned char buf[17]={0x01}; // 전체 초음파 측정 데이터를 Tx_buf1[5] 에 배열로 저장
+unsigned char buf[17]; // 전체 초음파 측정 데이터를 Tx_buf1[5] 에 배열로 저장
 unsigned char Tx_buf1[5] = {0x76, 0x00, 0xF0, 0x00, 0xF0};
 unsigned char ch[7];
 
@@ -410,10 +410,10 @@ void Decoding_Sensor(){
     int i;
 
 		for (i=4;i<9;i++){
-        if (0x09<buf[i] < 0x26)
+        if (0x09<buf[i] < 0x16)
         {
             Serial_Send0(buf[i]);
-                        Serial_Send0(0x0d);
+            Serial_Send0(0x0d);
             Serial_Send0(0x0a);
             // control = Emergency;
             break;
@@ -433,6 +433,9 @@ void main(void)
 
     Stop_Setting();
     
+    for(i =0; i<18;i++){
+        buf[i]=0x01;
+    }
 
     // 전후방 기본 초음파 측정 요청
     for (i = 0; i < 5; i++)

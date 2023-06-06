@@ -410,7 +410,7 @@ void Decoding_Sensor(){
     int i;
 
 		for (i=4;i<9;i++){
-        if (0x09<buf[i] < 0x16)
+        if (0x10<buf[i] < 0x16)
         {
             Serial_Send0(buf[i]);
             Serial_Send0(0x0d);
@@ -433,9 +433,7 @@ void main(void)
 
     Stop_Setting();
     
-    for(i =0; i<18;i++){
-        buf[i]=0x01;
-    }
+
 
     // 전후방 기본 초음파 측정 요청
     for (i = 0; i < 5; i++)

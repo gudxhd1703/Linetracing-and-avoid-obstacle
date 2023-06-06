@@ -26,7 +26,7 @@
 #define Velocity_Forward 28 // 전진속도
 #define Velocity_Low 130    // Low Turn
 #define Velocity_High 220   // High turn
-#define Velocity_Detect 110  // 라인을 찾기위한 회전속도
+#define Velocity_Detect 140  // 라인을 찾기위한 회전속도
 #define OutOfLine 0
 #define Turn 1
 #define GetInLine 2
@@ -41,23 +41,21 @@ void Stop_Setting(void);
 
 void Motor_dir(int c);
 void Linetracer(void);
-void Emergency_Act(void);
+int Emergency_Act(void);
 
 void Serial_Send0(unsigned char);
-void SerialData0(char *str);66
+void SerialData0(char *str);
 unsigned char Serial_Rece1(void);
 void Ult_Sonic(void);
 
 unsigned char buf[17]; // 전체 초음파 측정 데이터를 Tx_buf1[5] 에 배열로 저장
 unsigned char Tx_buf1[5] = {0x76, 0x00, 0xF0, 0x00, 0xF0};
-unsigned char ch[7];
-
 unsigned int Infrared_Sensor[19] = {
     0b11110111, 0b11101111, 0b11100111, 0b11001111, 0b11110011, 0b11000111, 0b11100011, // 직진
     0b11111101, 0b11111011, 0b11111001, 0b11110001, 0b11111110, 0b11111100,             // 우회전
     0b10111111, 0b11011111, 0b10011111, 0b10001111, 0b01111111, 0b00111111              // 좌회전
 };
-unsigned int Compare_Value[8] = {72, 75, 81, 77, 66, 65, 78, 75}; // n번 센서, (black+(white-black)/2)/4
+unsigned int Compare_Value[8] = {88, 108, 103, 86, 85, 74, 81, 73}; // n번 센서, (black+(white-black)/2)/4
 
 int control = linetracing;
 int check_flag = 0;
@@ -355,6 +353,8 @@ void Ult_Sonic(void)
     {
         if ((buf[i] < 0x15) && (0x09 < buf[i]) && (buf[i] != 0x00))
         {
+            Serial_Send0(buf[i]);
+
             control = Emergency;
             break;
         }
@@ -369,12 +369,13 @@ void Stop_Setting(void)
     PORTL = 0x00; // 부저 OFF
 }
 
-void Emergency_Act(void)
+int Emergency_Act(void)
 {
 
     unsigned int find_line;
-
+        
     find_line = OutOfLine;
+    
 
     Motor_dir(S);
 
@@ -389,15 +390,15 @@ void Emergency_Act(void)
     PORTL = PORTL & (~0x10); // 부저 OFF
 
     Motor_dir(T);
+    control = linetracing;
 
-    while (find_line < 3)
+    while (find_line!=Found_Line)
     {
         unsigned char IR = PINC;
 
         switch (find_line) // 1.라인벗어나기 2. 라인찾기
         {
         case OutOfLine:
-        IR = PINC;
             if (IR == 0b11111111)
                 find_line = Turn;
             /*fall through*/
@@ -408,22 +409,18 @@ void Emergency_Act(void)
                 break;
             /*fall through*/
         case GetInLine:
-            IR = PINC;
-            if (IR != 0b11111111)
+            if (IR == 0b11100111)
             {
                 find_line = Found_Line;
-                RIGHT = Velocity_Detect;
-                LEFT = Velocity_Detect;
-                delay_ms(2000);
                 RIGHT = 0;
                 LEFT = 0;
-                Motor_dir(S);
+                Motor_dir(S);            
+                return linetracing;
             }
             break;
         }
     }
 
-    control = linetracing;
 }
 
 void main(void)
@@ -451,7 +448,7 @@ void main(void)
         switch (control)
         {
         case Emergency:
-            Emergency_Act();
+            control = Emergency_Act();
             break;
         case linetracing:
             Linetracer();

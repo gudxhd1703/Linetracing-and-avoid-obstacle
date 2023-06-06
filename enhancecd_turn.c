@@ -23,9 +23,9 @@
 #define Emergency 2
 
 // velocity
-#define Velocity_Forward 35 // 전진속도
+#define Velocity_Forward 40 // 전진속도
 #define Velocity_Low 170    // Low Turn
-#define Velocity_High 200   // High turn
+#define Velocity_High 220   // High turn
 #define Velocity_Detect 140 // 라인을 찾기위한 회전속도
 #define OutOfLine 0
 #define Turn 1
@@ -141,6 +141,8 @@ void Initial_Motor_Setting(void)
     {
         DAC_CH_Write(i, Compare_Value[i]);
     }
+
+    delay_ms(2);
 }
 
 void Motor_dir(int c)
@@ -251,6 +253,7 @@ void Linetracer(void)
         Stop_Setting();
         PORTH = PORTH | 0x40;
         PORTL = PORTL | 0x10;
+        PORTB = PORTB | 0x10;
         control = THE_END;
     }
 }
@@ -379,10 +382,13 @@ void Ult_Sonic(void)
 
 void Stop_Setting(void)
 {
+    DDRB = 0x10;   //전방 LED
+    PORTH = 0x00;
     DDRH = 0x40;  // 후방 LED
     PORTH = 0x00; // 후방 LED OFF
     DDRL = 0x10;  // 부저
     PORTL = 0x00; // 부저 OFF
+    delay_ms(2);
 }
 
 int Emergency_Act(void)
@@ -393,6 +399,7 @@ int Emergency_Act(void)
     find_line = OutOfLine;
 
     Motor_dir(S);
+    Stop_Setting();
 
     RIGHT = 0;
     LEFT = 0; // 전진
@@ -405,7 +412,7 @@ int Emergency_Act(void)
     PORTL = PORTL & (~0x10); // 부저 OFF
 
     Motor_dir(T);
-    control = linetracing;
+    Initial_Motor_Setting();
 
     while (find_line != Found_Line)
     {
@@ -442,18 +449,22 @@ void main(void)
 
     int i;
 
+    Stop_Setting();
+
     Initial_Motor_Setting();
     Init_USART();
 
     Set_Interrupt();
 
-    Stop_Setting();
+    
 
     // 전후방 기본 초음파 측정 요청
     for (i = 0; i < 5; i++)
     {
         Serial_Send1(Tx_buf1[i]);
     }
+
+    delay_ms(500);
 
     while (control != THE_END)
     {
@@ -472,4 +483,5 @@ void main(void)
     delay_ms(3000);
     PORTL = 0x00;
     PORTH = 0x00;
+    PORTB = 0x00;
 }

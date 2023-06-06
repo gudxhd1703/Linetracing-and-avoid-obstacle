@@ -32,6 +32,7 @@ void DAC_setting(unsigned int);
 
 void Initial_Motor_Setting(void);
 void Init_USART(void);
+void Stop_Setting(void);
 
 void Motor_dir(int c);
 void Linetracer(void);
@@ -358,6 +359,8 @@ void Set_Interrupt(void)
 }
 
 void Ult_Sonic(void){
+    int i;
+
 if (check_flag == 1)
         {
             for (i = 0; i < 17; i++)
@@ -375,6 +378,14 @@ if (check_flag == 1)
         }
 }
 
+void Stop_Setting(void)
+{
+        DDRH = 0x40;  // 후방 LED
+        PORTH = 0x00; // 후방 LED OFF
+        DDRL = 0x10;  // 부저
+        PORTL = 0x00; // 부저 OFF
+}
+
 void Emergency_Act(void){
 
     Motor_dir(S);
@@ -386,8 +397,8 @@ void Emergency_Act(void){
 
     delay_ms(1000);
 
-    PORTH = 0x00; // 후방 LED OFF
-    PORTL = 0x00 ; // 부저 OFF
+    PORTH = PORTH&(~0x40); // 후방 LED OFF
+    PORTL = PORTL&(~0x10) ; // 부저 OFF
 
     control = linetracing;
 
@@ -396,9 +407,10 @@ void Emergency_Act(void){
 
 void Decoding_Sensor(){
 
+    int i;
+
 		for (i=4;i<9;i++){
-        compare = i;
-        if (buf[i] < 0x46)
+        if (buf[i] < 0x26)
         {
             control = Emergency;
             break;
@@ -416,10 +428,7 @@ void main(void)
 
     Set_Interrupt();
 
-    DDRH = 0x40 ; // 후방 LED
-    PORTH = 0x00; // 후방 LED OFF
-    DDRL = 0x10; // 부저
-    PORTL = 0x00 ; // 부저 OFF
+    Stop_Setting();
     
 
     // 전후방 기본 초음파 측정 요청

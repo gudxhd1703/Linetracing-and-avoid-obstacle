@@ -142,7 +142,7 @@ void Initial_Motor_Setting(void)
         DAC_CH_Write(i, Compare_Value[i]);
     }
 
-    delay_ms(2);
+    delay_ms(20);
 }
 
 void Motor_dir(int c)
@@ -388,7 +388,7 @@ void Stop_Setting(void)
     PORTH = 0x00; // 후방 LED OFF
     DDRL = 0x10;  // 부저
     PORTL = 0x00; // 부저 OFF
-    delay_ms(2);
+    delay_ms(20);
 }
 
 int Emergency_Act(void)

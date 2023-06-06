@@ -408,14 +408,19 @@ void Emergency_Act(void){
 void Decoding_Sensor(){
 
     int i;
-
+    unsigned char data[17]=0;
+    if(buf[0]==0x0076){
+        for(i=0;i<17;i++){
+            data[i]=buf[i];
+        }
+        }
 		for (i=4;i<9;i++){
-        if (0x10<ch[i] < 0x16)
+        if (0x10<data[i] < 0x16)
         {
-            Serial_Send0(buf[i]);
-            Serial_Send0(0x0d);
-            Serial_Send0(0x0a);
-            // control = Emergency;
+            // Serial_Send0(bdatauf[i]);
+            // Serial_Send0(0x0d);
+            // Serial_Send0(0x0a);
+            control = Emergency;
             break;
         }
     }

@@ -377,9 +377,9 @@ if (check_flag == 1)
             Serial_Send0(0x0a);
 
         for (i=4;i<9;i++){
-        if (ch[i] < 0x0016|0x0010<ch[i])
+        if (buf[i] < 0x0016|0x0010<buf[i])
         {
-            Serial_Send0(ch[i]);
+            SerialData0(buf[i]);
             Serial_Send0(0x0d);
             Serial_Send0(0x0a);
             // control = Emergency;
@@ -419,7 +419,6 @@ void Emergency_Act(void){
 void Decoding_Sensor(){
 
     int i;
-    unsigned char data[17];
 
 		for (i=4;i<9;i++){
         if (ch[i] < 0x0016|0x0010<ch[i])

@@ -42,7 +42,7 @@ void Stop_Setting(void);
 
 void Motor_dir(int c);
 void Linetracer(void);
-void Emergency_Act(void);
+int Emergency_Act(void);
 
 void Serial_Send0(unsigned char);
 void SerialData0(char *str);
@@ -59,9 +59,10 @@ unsigned int Infrared_Sensor[20] = {
 };
 unsigned int Compare_Value[8] = {88, 108, 103, 86, 85, 74, 81, 73}; // n번 센서, (black+(white-black)/2)/4
 
-unsigned int control = linetracing;
+int control = linetracing;
 int check_flag = 0;
 unsigned int find_line;
+
 
 // DA 변환기 출력을 내기위해 해당 데이터를 쓰는 함수
 void DAC_CH_Write(unsigned int ch1, unsigned int da)
@@ -202,7 +203,7 @@ void Linetracer(void)
 
     IR = PINC;
 
-    delay_ms(5);
+    // delay_ms(5);
 
     for (i = 0; i < 20; i++)
     {
@@ -212,41 +213,45 @@ void Linetracer(void)
             break;
         }
     }
-
-    Motor_dir(S); // 역기전력 방지
-
     if (data < 7)
     {
+        Motor_dir(S);
+
         Motor_dir(F);
         RIGHT = Velocity_Forward;
         LEFT = Velocity_Forward;
     }
     else if (data < 11)
     {
+        Motor_dir(S);
         Motor_dir(L);
         RIGHT = Velocity_Low;
         LEFT = Velocity_Low;
     }
     else if (data < 13)
     {
+        Motor_dir(S);
         Motor_dir(L);
         RIGHT = Velocity_High;
         LEFT = Velocity_High;
     }
     else if (data < 17)
     {
+        Motor_dir(S);
         Motor_dir(R);
         RIGHT = Velocity_Low;
         LEFT = Velocity_Low;
     }
     else if (data < 19)
     {
+        Motor_dir(S);
         Motor_dir(R);
         RIGHT = Velocity_High;
         LEFT = Velocity_High;
     }
-    else if (data == 19)
+    else if(data==19)
     {
+        Motor_dir(S);
         Stop_Setting();
         PORTH = PORTH | 0x40;
         PORTL = PORTL | 0x10;
@@ -321,16 +326,19 @@ unsigned char Serial_Rece1(void)
     return data;
 }
 
-interrupt[TIM1_OVF] void timer1_ovf_isr(void) // 0.1s마다 초음파 측정하게 flag를 세워줌
+interrupt[TIM1_OVF] void timer1_ovf_isr(void)
 {
-    int i;
-
     TCNT1H = 0xE1;
     TCNT1L = 0x7C;
 
-    for (i = 0; i < 17; i++)
+    switch (check_flag)
     {
-        buf[i] = Serial_Rece1();
+    case 0:
+        check_flag = 1;
+        break;
+    case 1:
+        check_flag = 0;
+        break;
     }
 }
 
@@ -343,7 +351,7 @@ void Set_Interrupt(void)
     TCCR1A = 0;
     TCCR1B = 0x05;
 
-    TCNT1H = 0xE1; // 0.1s 마다 반복
+    TCNT1H = 0xE1; // s 마다 반복
     TCNT1L = 0x7C; // 0xffff(65535)+1-1562 = 63,974
 
     TIFR1 = 0;
@@ -354,10 +362,20 @@ void Ult_Sonic(void)
 {
     int i;
 
+    if (check_flag == 1)
+    {
+        for (i = 0; i < 17; i++)
+        {
+            buf[i] = Serial_Rece1();
+        }
+    }
+
     for (i = 8; i < 13; i++)
     {
         if ((buf[i] < 0x15) && (0x09 < buf[i]) && (buf[i] != 0x00))
         {
+            Serial_Send0(buf[i]);
+
             control = Emergency;
             break;
         }
@@ -366,6 +384,7 @@ void Ult_Sonic(void)
 
 void Stop_Setting(void)
 {
+    DDRB = 0x10;   //전방 LED
     PORTH = 0x00;
     DDRH = 0x40;  // 후방 LED
     PORTH = 0x00; // 후방 LED OFF
@@ -374,10 +393,9 @@ void Stop_Setting(void)
     delay_ms(20);
 }
 
-void Emergency_Act(void) // 초음파로 장애물 감지시
+int Emergency_Act(void) //초음파로 장애물 감지시
 {
 
-    Serial_Send0(control); // test
 
     find_line = OutOfLine;
 
@@ -420,10 +438,10 @@ void Emergency_Act(void) // 초음파로 장애물 감지시
                 RIGHT = 0;
                 LEFT = 0;
                 Motor_dir(S);
+                return linetracing;
             }
             break;
-        default:
-            break;
+        default: break;
         }
     }
 }
@@ -440,6 +458,8 @@ void main(void)
 
     Set_Interrupt();
 
+    
+
     // 전후방 기본 초음파 측정 요청
     for (i = 0; i < 5; i++)
     {
@@ -451,13 +471,11 @@ void main(void)
     while (control != THE_END)
     {
         Ult_Sonic();
-        Serial_Send0(control); // test
 
         switch (control)
         {
         case Emergency:
-            Emergency_Act();
-            control = linetracing;
+            control = Emergency_Act();
             break;
         case linetracing:
             Linetracer();

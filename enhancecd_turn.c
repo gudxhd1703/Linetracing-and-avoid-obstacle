@@ -14,7 +14,7 @@
 #define RIGHT OCR0B
 
 // switch
-#define F 1
+#define F 1             //회전을 기준으로 LEFT,RIGHT...
 #define L 2
 #define R 3
 #define S 4
@@ -366,7 +366,6 @@ void Ult_Sonic(void)
 
 void Stop_Setting(void)
 {
-    PORTH = 0x00;
     DDRH = 0x40;  // 후방 LED
     PORTH = 0x00; // 후방 LED OFF
     DDRL = 0x10;  // 부저

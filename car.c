@@ -18,7 +18,6 @@
 #define L 2
 #define R 3
 #define S 4
-#define T 5
 #define linetracing 1
 #define Emergency 2
 
@@ -26,11 +25,7 @@
 #define Velocity_Forward 28 // 전진속도
 #define Velocity_Low 130    // Low Turn
 #define Velocity_High 220   // High turn
-#define Velocity_Detect 140  // 라인을 찾기위한 회전속도
-#define OutOfLine 0
-#define Turn 1
-#define GetInLine 2
-#define Found_Line 3
+#define Velocity_Detect 100 // 라인을 찾기위한 회전속도
 
 void DAC_CH_Write(unsigned int, unsigned int);
 void DAC_setting(unsigned int);
@@ -41,21 +36,25 @@ void Stop_Setting(void);
 
 void Motor_dir(int c);
 void Linetracer(void);
-int Emergency_Act(void);
+void Emergency_Act(void);
 
 void Serial_Send0(unsigned char);
 void SerialData0(char *str);
 unsigned char Serial_Rece1(void);
+void HtoA(int s);
 void Ult_Sonic(void);
+void Decoding_Sensor(void);
 
 unsigned char buf[17]; // 전체 초음파 측정 데이터를 Tx_buf1[5] 에 배열로 저장
 unsigned char Tx_buf1[5] = {0x76, 0x00, 0xF0, 0x00, 0xF0};
+unsigned char ch[7];
+
 unsigned int Infrared_Sensor[19] = {
     0b11110111, 0b11101111, 0b11100111, 0b11001111, 0b11110011, 0b11000111, 0b11100011, // 직진
     0b11111101, 0b11111011, 0b11111001, 0b11110001, 0b11111110, 0b11111100,             // 우회전
     0b10111111, 0b11011111, 0b10011111, 0b10001111, 0b01111111, 0b00111111              // 좌회전
 };
-unsigned int Compare_Value[8] = {88, 108, 103, 86, 85, 74, 81, 73}; // n번 센서, (black+(white-black)/2)/4
+unsigned int Compare_Value[8] = {72, 75, 81, 77, 66, 65, 78, 75}; // n번 센서, (black+(white-black)/2)/4
 
 int control = linetracing;
 int check_flag = 0;
@@ -175,14 +174,6 @@ void Motor_dir(int c)
         LEFT_MD_B = 0;
         L_MOTOR_EN = 1;
         RIGHT_MD_A = 0;
-        RIGHT_MD_B = 0;
-        R_MOTOR_EN = 1;
-        break;
-    case T:
-        LEFT_MD_A = 1;
-        LEFT_MD_B = 0;
-        L_MOTOR_EN = 1;
-        RIGHT_MD_A = 1;
         RIGHT_MD_B = 0;
         R_MOTOR_EN = 1;
         break;
@@ -323,6 +314,36 @@ interrupt[TIM1_OVF] void timer1_ovf_isr(void)
 
 // 16진수를 ASCII 문자로 변환해 주는 함수이다.
 
+void HtoA(int s)
+{
+    int buff;
+    ch[0] = s / 0x1000;
+    buff = s % 0x1000;
+    if (ch[0] < 10)
+        ch[0] = ch[0] + 0x30;
+    else
+        ch[0] = ch[0] + 55;
+    ch[1] = buff / 0x100;
+    buff = buff % 0x100;
+    if (ch[1] < 10)
+        ch[1] = ch[1] + 0x30;
+    else
+        ch[1] = ch[1] + 55;
+    ch[2] = buff / 0x10;
+    buff = buff % 0x10;
+    if (ch[2] < 10)
+        ch[2] = ch[2] + 0x30;
+    else
+        ch[2] = ch[2] + 55;
+    ch[3] = buff;
+    if (ch[3] < 10)
+        ch[3] = ch[3] + 0x30;
+    else
+        ch[3] = ch[3] + 55;
+    ch[4] = ' '; // 스페이스를 넣는다
+    ch[5] = 0;
+}
+
 void Set_Interrupt(void)
 {
     TIMSK1 = 0x01;
@@ -333,123 +354,82 @@ void Set_Interrupt(void)
     TCNT1H = 0xE1; // s 마다 반복
     TCNT1L = 0x7C; // 0xffff(65535)+1-1562 = 63,974
 
-    TIFR1 = 0;
-#asm("sei");
+    TIFR1 = 0; 
+    #asm("sei");
 }
 
-void Ult_Sonic(void)
-{
+void Ult_Sonic(void){
     int i;
 
-    if (check_flag == 1)
-    {
-        for (i = 0; i < 17; i++)
+if (check_flag == 1)
         {
-            buf[i] = Serial_Rece1();
-        }
-    }
+            for (i = 0; i < 17; i++)
+            {
+                buf[i] = Serial_Rece1();
+            }
+            // 받은 17바이트의 데이터를 블루투스로 스마트폰에 송신한다.
+            for (i = 0; i < 17; i++)
+            {
+                HtoA(buf[i]);
+                SerialData0(ch);
+            }
+            Serial_Send0(0x0d);
+            Serial_Send0(0x0a);
 
-    for (i = 8; i < 13; i++)
-    {
-        if ((buf[i] < 0x15) && (0x09 < buf[i]) && (buf[i] != 0x00))
+        for (i=4;i<9;i++){
+        if (buf[i] < 0x0016||0x0010<buf[i])
         {
-            Serial_Send0(buf[i]);
-
-            control = Emergency;
+            SerialData0(buf[i]);
+            Serial_Send0(0x0d);
+            Serial_Send0(0x0a);
+            // control = Emergency;
             break;
         }
     }
+        }
 }
 
 void Stop_Setting(void)
 {
-    DDRH = 0x40;  // 후방 LED
-    PORTH = 0x00; // 후방 LED OFF
-    DDRL = 0x10;  // 부저
-    PORTL = 0x00; // 부저 OFF
+        DDRH = 0x40;  // 후방 LED
+        PORTH = 0x00; // 후방 LED OFF
+        DDRL = 0x10;  // 부저
+        PORTL = 0x00; // 부저 OFF
 }
 
-int Emergency_Act(void)
-{
+void Emergency_Act(void){
 
-    unsigned int find_line;
-        
-    find_line = OutOfLine;
-    
-
-<<<<<<< HEAD
-    int i = 0; 
-    
-    Initial_Sensor_Setting( ); // 시리얼 포트 0, 1 초기와 
- 
-    for( i = 0 ;i < 5 ;i++){ 
-        Serial_Send1(Tx_buf1[i]); // 전체 초음파 측정 데이터를 요청 
-    }    
-        
-    // 초음파 모듈에서 17바이트의 데이터를 받는다 . 
-    for( i = 0 ; i < 17 ; i ++ ){
-        buf[i] = Serial_Rece1( ); 
-    } 
-}
-int Decoding_Sensor(unsigned char buf[17])
-{
-		int i=0;
-		int compare = 0;
-		for (i=4;i<9;i++){
-			compare = i;
-		if(buf[i]<0x46) {control = emergency; break;}
-	}
-    return compare;
-}
-void Emergency_Act()    //장애물 발견
-{
-	Motor_dir(S);
-=======
     Motor_dir(S);
->>>>>>> interrupt
 
     RIGHT = 0;
     LEFT = 0; // 전진
-    PORTH = PORTH | 0x40;
-    PORTL = PORTL | 0x10;
+	PORTH = PORTH|0x40;
+	PORTL = PORTL|0x10;
 
     delay_ms(1000);
 
-    PORTH = PORTH & (~0x40); // 후방 LED OFF
-    PORTL = PORTL & (~0x10); // 부저 OFF
+    PORTH = PORTH&(~0x40); // 후방 LED OFF
+    PORTL = PORTL&(~0x10) ; // 부저 OFF
 
-    Motor_dir(T);
     control = linetracing;
 
-    while (find_line!=Found_Line)
-    {
-        unsigned char IR = PINC;
 
-        switch (find_line) // 1.라인벗어나기 2. 라인찾기
+}
+
+void Decoding_Sensor(){
+
+    int i;
+
+		for (i=4;i<9;i++){
+        if (buf[i] < 0x0016|0x0010<buf[i])
         {
-        case OutOfLine:
-            if (IR == 0b11111111)
-                find_line = Turn;
-            /*fall through*/
-        case Turn:
-            RIGHT = Velocity_Detect;
-            LEFT = Velocity_Detect;
-            if (find_line == OutOfLine)
-                break;
-            /*fall through*/
-        case GetInLine:
-            if (IR == 0b11100111)
-            {
-                find_line = Found_Line;
-                RIGHT = 0;
-                LEFT = 0;
-                Motor_dir(S);            
-                return linetracing;
-            }
+            Serial_Send0(buf[i]);
+            Serial_Send0(0x0d);
+            Serial_Send0(0x0a);
+            // control = Emergency;
             break;
         }
     }
-
 }
 
 void main(void)
@@ -463,6 +443,8 @@ void main(void)
     Set_Interrupt();
 
     Stop_Setting();
+    
+
 
     // 전후방 기본 초음파 측정 요청
     for (i = 0; i < 5; i++)
@@ -473,12 +455,11 @@ void main(void)
     while (1)
     {
         Ult_Sonic();
+        // Decoding_Sensor();
 
         switch (control)
         {
-        case Emergency:
-            control = Emergency_Act();
-            break;
+        case Emergency: Emergency_Act();break;
         case linetracing:
             Linetracer();
             break;
